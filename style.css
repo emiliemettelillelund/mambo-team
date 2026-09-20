@@ -332,39 +332,8 @@ table.schedule td.hours-cell { font-weight: 600; color: var(--olive); white-spac
 .shift-note { background: var(--dusty-rose); color: #4a2418; font-size: 11px; }
 .shift-empty { color: var(--border); }
 
-/* Mobile schedule cards */
-.schedule-cards { display: none; flex-direction: column; gap: 10px; }
-.emp-card { background: var(--cream-soft); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
-.emp-card .emp-name { font-family: "Fraunces", serif; font-weight: 600; color: var(--maroon-dark); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: baseline; }
-.emp-card .emp-hours { font-size: 12px; color: var(--olive); font-weight: 600; }
-.emp-card .day-row { display: flex; justify-content: space-between; padding: 5px 0; border-top: 1px dashed var(--border); font-size: 13px; }
-.emp-card .day-row:first-of-type { border-top: none; }
-.emp-card .day-row .day-name { color: var(--text-soft); font-weight: 600; width: 78px; flex-shrink: 0; }
-.emp-card .day-row.today-col .day-name { color: var(--terracotta); }
-
-@media (max-width: 700px) {
-  .schedule-table-wrap { display: none; }
-  .schedule-cards { display: flex; }
-}
 
 /* ---------- Propinas ---------- */
-.propinas-toolbar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: center;
-  margin-bottom: 18px;
-}
-.employee-select {
-  background: var(--cream-soft);
-  border: 1px solid var(--border);
-  color: var(--maroon-dark);
-  font-weight: 600;
-  padding: 9px 12px;
-  border-radius: 10px;
-  font-size: 14px;
-}
-
 .summary-strip {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -384,11 +353,17 @@ table.schedule td.hours-cell { font-weight: 600; color: var(--olive); white-spac
 
 .propinas-table-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
 table.propinas { border-collapse: collapse; width: 100%; min-width: 480px; background: var(--cream-soft); }
-table.propinas th, table.propinas td { padding: 10px 12px; text-align: left; font-size: 13.5px; border-bottom: 1px solid var(--border); }
-table.propinas thead th { background: var(--olive); color: var(--cream); font-family: "Fraunces", serif; font-weight: 600; font-size: 12.5px; }
-table.propinas tbody tr:nth-child(even) { background: rgba(0,0,0,0.02); }
-table.propinas tbody tr.current-week td { background: rgba(201,115,85,0.12); }
+table.propinas th, table.propinas td { padding: 9px 11px; text-align: left; font-size: 13px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); white-space: nowrap; }
+table.propinas th:last-child, table.propinas td:last-child { border-right: none; }
+table.propinas thead th { background: var(--olive); color: var(--cream); font-family: "Fraunces", serif; font-weight: 600; font-size: 12px; text-align: center; }
+table.propinas thead tr:first-child th { border-bottom: 1px solid rgba(247,238,219,0.25); }
+table.propinas thead th.emp-group { background: var(--olive-light); }
+table.propinas th.corner, table.propinas td.week-cell { position: sticky; left: 0; background: var(--cream); text-align: left; font-weight: 600; color: var(--maroon-dark); }
+table.propinas thead th.corner { background: var(--olive); color: var(--cream); z-index: 2; }
+table.propinas tbody tr:nth-child(even) td:not(.week-cell) { background: rgba(0,0,0,0.02); }
+table.propinas tbody tr.current-week td { background: rgba(201,115,85,0.14) !important; }
 table.propinas td.num { text-align: right; font-weight: 600; }
+table.propinas td.total-cell { text-align: right; font-weight: 700; color: var(--olive); background: var(--cream-soft); }
 
 .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .status-badge.ok { background: var(--good-bg); color: var(--good); }

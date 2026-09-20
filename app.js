@@ -12,7 +12,6 @@ const state = {
   horarioBlocks: [],
   currentWeekIdx: 0,
   propinas: null,
-  selectedEmployee: 'ALL',
 };
 
 // ---------------------------------------------------------------------------
@@ -269,23 +268,6 @@ function renderHorario() {
   tbody += '</tbody>';
   table.innerHTML = thead + tbody;
 
-  // Mobile cards
-  const cardsWrap = document.getElementById('scheduleCards');
-  cardsWrap.innerHTML = block.employees
-    .map((emp) => {
-      const hoursText = emp.horas != null ? `${emp.horas}h${emp.contrato != null ? ` / ${emp.contrato}h` : ''}` : '';
-      const rows = emp.days
-        .map((day, i) => {
-          const isToday = i === todayIdx;
-          const cls = shiftClass(day);
-          const content = day ? `<span class="shift-pill ${cls}">${escapeHtml(day)}</span>` : '<span class="shift-empty">—</span>';
-          return `<div class="day-row ${isToday ? 'today-col' : ''}"><span class="day-name">${DAY_NAMES_SHORT[i]}</span>${content}</div>`;
-        })
-        .join('');
-      return `<div class="emp-card"><div class="emp-name"><span>${escapeHtml(emp.name)}</span><span class="emp-hours">${hoursText}</span></div>${rows}</div>`;
-    })
-    .join('');
-
   wrap.hidden = false;
   document.getElementById('horarioLoading').hidden = true;
   document.getElementById('horarioError').hidden = true;
@@ -364,84 +346,67 @@ function renderPropinas() {
   const data = state.propinas;
   if (!data) return;
 
-  const select = document.getElementById('employeeSelect');
-  if (!select.options.length) {
-    select.innerHTML =
-      '<option value="ALL">Todo el equipo</option>' +
-      data.employees.map((e) => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join('');
-    select.value = state.selectedEmployee;
-  }
-
   const currentWeekNum = isoWeekNumber(new Date());
   const weeksWithData = data.weeks.filter((w) => w.anyData || w.weekNum === currentWeekNum);
 
   const summaryEl = document.getElementById('summaryStrip');
-  const bodyEl = document.getElementById('propinasBody');
-
-  if (state.selectedEmployee === 'ALL') {
-    let totalPaid = 0;
-    let totalPending = 0;
-    weeksWithData.forEach((w) => {
-      data.employees.forEach((emp) => {
-        const rec = w.perEmployee[emp];
-        if (!rec) return;
-        if (/ya entregado/i.test(rec.estado || '')) totalPaid += rec.propinas;
-        else if (rec.propinas) totalPending += rec.propinas;
-      });
-    });
-
-    summaryEl.innerHTML = `
-      <div class="summary-tile"><div class="label">Propinas entregadas</div><div class="value">${fmtEuro(totalPaid)}</div></div>
-      <div class="summary-tile pending"><div class="label">Pendiente de entregar</div><div class="value">${fmtEuro(totalPending)}</div></div>
-      <div class="summary-tile"><div class="label">Semanas registradas</div><div class="value">${weeksWithData.length}</div></div>
-    `;
-
-    bodyEl.innerHTML = weeksWithData
-      .slice()
-      .reverse()
-      .map((w) => {
-        const isCurrent = w.weekNum === currentWeekNum;
-        const pending = data.employees.some((emp) => w.perEmployee[emp] && /no entregado/i.test(w.perEmployee[emp].estado || '') && w.perEmployee[emp].propinas);
-        const badge = w.total
-          ? pending
-            ? '<span class="status-badge pending"><span class="dot"></span>Pendiente</span>'
-            : '<span class="status-badge ok"><span class="dot"></span>Entregado</span>'
-          : '<span class="status-badge pending"><span class="dot"></span>Sin datos</span>';
-        return `<tr class="${isCurrent ? 'current-week' : ''}"><td>${escapeHtml(w.weekLabel)}</td><td>—</td><td class="num">${fmtEuro(w.total)}</td><td>${badge}</td></tr>`;
-      })
-      .join('');
-  } else {
-    const emp = state.selectedEmployee;
-    let totalPaid = 0;
-    let totalPending = 0;
-    weeksWithData.forEach((w) => {
+  let totalPaid = 0;
+  let totalPending = 0;
+  weeksWithData.forEach((w) => {
+    data.employees.forEach((emp) => {
       const rec = w.perEmployee[emp];
       if (!rec) return;
       if (/ya entregado/i.test(rec.estado || '')) totalPaid += rec.propinas;
       else if (rec.propinas) totalPending += rec.propinas;
     });
+  });
+  summaryEl.innerHTML = `
+    <div class="summary-tile"><div class="label">Propinas entregadas</div><div class="value">${fmtEuro(totalPaid)}</div></div>
+    <div class="summary-tile pending"><div class="label">Pendiente de entregar</div><div class="value">${fmtEuro(totalPending)}</div></div>
+    <div class="summary-tile"><div class="label">Semanas registradas</div><div class="value">${weeksWithData.length}</div></div>
+  `;
 
-    summaryEl.innerHTML = `
-      <div class="summary-tile"><div class="label">Entregadas a ${escapeHtml(emp)}</div><div class="value">${fmtEuro(totalPaid)}</div></div>
-      <div class="summary-tile pending"><div class="label">Pendiente</div><div class="value">${fmtEuro(totalPending)}</div></div>
-    `;
+  // Wide table, laid out like the sheet: Semana | Total | [emp: Horas|Propinas|Estado]...
+  const table = document.getElementById('propinasTable');
 
-    bodyEl.innerHTML = weeksWithData
-      .slice()
-      .reverse()
-      .map((w) => {
+  let thead = '<thead><tr>';
+  thead += '<th class="corner" rowspan="2">Semana</th>';
+  thead += '<th rowspan="2">Total</th>';
+  data.employees.forEach((emp) => {
+    thead += `<th class="emp-group" colspan="3">${escapeHtml(emp)}</th>`;
+  });
+  thead += '</tr><tr>';
+  data.employees.forEach(() => {
+    thead += '<th>Horas</th><th>Propinas</th><th>Estado</th>';
+  });
+  thead += '</tr></thead>';
+
+  const rows = weeksWithData
+    .slice()
+    .reverse()
+    .map((w) => {
+      const isCurrent = w.weekNum === currentWeekNum;
+      let row = `<tr class="${isCurrent ? 'current-week' : ''}">`;
+      row += `<td class="week-cell">${escapeHtml(w.weekLabel)}</td>`;
+      row += `<td class="total-cell">${fmtEuro(w.total)}</td>`;
+      data.employees.forEach((emp) => {
         const rec = w.perEmployee[emp] || {};
-        const isCurrent = w.weekNum === currentWeekNum;
         const isPending = /no entregado/i.test(rec.estado || '');
         const badge = rec.estado
           ? isPending
             ? '<span class="status-badge pending"><span class="dot"></span>No entregado</span>'
             : '<span class="status-badge ok"><span class="dot"></span>Ya entregado</span>'
-          : '<span class="status-badge pending"><span class="dot"></span>Sin datos</span>';
-        return `<tr class="${isCurrent ? 'current-week' : ''}"><td>${escapeHtml(w.weekLabel)}</td><td>${rec.horas != null ? rec.horas : '—'}</td><td class="num">${fmtEuro(rec.propinas)}</td><td>${badge}</td></tr>`;
-      })
-      .join('');
-  }
+          : '<span class="status-badge pending"><span class="dot"></span>—</span>';
+        row += `<td>${rec.horas != null ? rec.horas : '—'}</td>`;
+        row += `<td class="num">${fmtEuro(rec.propinas)}</td>`;
+        row += `<td>${badge}</td>`;
+      });
+      row += '</tr>';
+      return row;
+    })
+    .join('');
+
+  table.innerHTML = thead + `<tbody>${rows}</tbody>`;
 
   document.getElementById('propinasContent').hidden = false;
   document.getElementById('propinasLoading').hidden = true;
@@ -530,10 +495,6 @@ document.getElementById('todayBtn').addEventListener('click', () => {
   renderHorario();
 });
 document.getElementById('refreshBtn').addEventListener('click', () => loadAll(true));
-document.getElementById('employeeSelect').addEventListener('change', (e) => {
-  state.selectedEmployee = e.target.value;
-  renderPropinas();
-});
 
 loadAll(false);
 setInterval(() => loadAll(false), REFRESH_MS);

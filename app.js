@@ -372,23 +372,6 @@ function renderPropinas() {
   const currentWeekNum = isoWeekNumber(new Date());
   const weeksWithData = data.weeks.filter((w) => w.anyData || w.weekNum === currentWeekNum);
 
-  const summaryEl = document.getElementById('summaryStrip');
-  let totalPaid = 0;
-  let totalPending = 0;
-  weeksWithData.forEach((w) => {
-    data.employees.forEach((emp) => {
-      const rec = w.perEmployee[emp];
-      if (!rec) return;
-      if (/ya entregado/i.test(rec.estado || '')) totalPaid += rec.propinas;
-      else if (rec.propinas) totalPending += rec.propinas;
-    });
-  });
-  summaryEl.innerHTML = `
-    <div class="summary-tile"><div class="label">Propinas entregadas</div><div class="value">${fmtEuro(totalPaid)}</div></div>
-    <div class="summary-tile pending"><div class="label">Pendiente de entregar</div><div class="value">${fmtEuro(totalPending)}</div></div>
-    <div class="summary-tile"><div class="label">Semanas registradas</div><div class="value">${weeksWithData.length}</div></div>
-  `;
-
   // Wide table, laid out like the sheet: Semana | Total | [emp: Horas|Propinas|Estado]...
   const table = document.getElementById('propinasTable');
 

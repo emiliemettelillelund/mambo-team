@@ -1,4 +1,4 @@
-/* Mambo Team Hub — reads live from the "Horario Mambo" Google Sheet via the public gviz endpoint. */
+/* Mambo Team Hub — reads live from the "Horario Mambo" Google Sheet via its public CSV export. */
 
 const SHEET_ID = '17eJ5HyWVERHkCdWHL1Kkca0Pqoa1fZaYiXK2wSe9vEY';
 const GID_HORARIO = '1406105618';
@@ -15,47 +15,72 @@ const state = {
 };
 
 // ---------------------------------------------------------------------------
-// JSONP fetch against the public gviz endpoint (no server, no CORS issues).
+// CSV export fetch. The gviz JSON endpoint silently corrupts or drops cell
+// values on this sheet once a query spans enough rows (Google's column
+// type-guessing breaks when a column mixes times with text like "BAJA
+// MEDICA" or "Apoyo opcional") — the CSV export doesn't type-guess at all,
+// so we use that instead, in row-ranged chunks small enough to stay under
+// the same corruption threshold (empirically safe up to ~300 rows/request).
 // ---------------------------------------------------------------------------
-function fetchGviz(gid) {
-  return new Promise((resolve, reject) => {
-    const cbName = 'gvizCb_' + gid + '_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
-    const script = document.createElement('script');
-    let settled = false;
-
-    const cleanup = () => {
-      delete window[cbName];
-      script.remove();
-    };
-
-    window[cbName] = (data) => {
-      settled = true;
-      cleanup();
-      resolve(data);
-    };
-
-    script.onerror = () => {
-      if (!settled) {
-        settled = true;
-        cleanup();
-        reject(new Error('No se pudo conectar con Google Sheets'));
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') {
+          field += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        field += c;
       }
-    };
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ',') {
+      row.push(field);
+      field = '';
+    } else if (c === '\r') {
+      // ignore; row break happens on \n
+    } else if (c === '\n') {
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else {
+      field += c;
+    }
+  }
+  if (field.length || row.length) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows;
+}
 
-    script.src =
-      `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
-      `?gid=${gid}&tqx=out:json;responseHandler:${cbName}&_=${Date.now()}`;
+async function fetchCsvRange(gid, a1Range) {
+  const url =
+    `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export` +
+    `?format=csv&gid=${gid}&range=${a1Range}&_=${Date.now()}`;
+  const res = await fetch(url, { cache: 'no-store' });
+  if (!res.ok) throw new Error('No se pudo conectar con Google Sheets');
+  const text = await res.text();
+  return parseCSV(text);
+}
 
-    document.body.appendChild(script);
-
-    setTimeout(() => {
-      if (!settled) {
-        settled = true;
-        cleanup();
-        reject(new Error('Tiempo de espera agotado'));
-      }
-    }, 15000);
-  });
+async function fetchCsvChunked(gid, colRange, chunkRows, maxRow) {
+  const chunks = [];
+  for (let start = 1; start <= maxRow; start += chunkRows) {
+    const end = start + chunkRows - 1;
+    chunks.push(fetchCsvRange(gid, `A${start}:${colRange}${end}`));
+  }
+  const results = await Promise.all(chunks);
+  return results.flat();
 }
 
 // ---------------------------------------------------------------------------
@@ -66,11 +91,11 @@ const DAY_END_COLS = [3, 5, 7, 9, 11, 13, 15]; // D F H J L N P
 const SKIP_LABELS = new Set(['PAX POR DÍA:', 'HORARIO APERTURA/CIERRE CLIENTE']);
 
 function cellText(row, idx) {
-  if (!row || !row.c || !row.c[idx]) return null;
-  const c = row.c[idx];
-  if (c.f !== undefined && c.f !== null && c.f !== '') return String(c.f).trim();
-  if (c.v !== undefined && c.v !== null) return String(c.v).trim();
-  return null;
+  if (!row) return null;
+  const v = row[idx];
+  if (v == null) return null;
+  const t = String(v).trim();
+  return t === '' ? null : t;
 }
 
 function normTime(t) {
@@ -87,8 +112,7 @@ function formatShift(start, end) {
   return '';
 }
 
-function parseHorario(table) {
-  const rows = table.rows;
+function parseHorario(rows) {
   const blocks = [];
   let lastMonth = null;
   let yearOffset = 0;
@@ -280,41 +304,40 @@ function escapeHtml(s) {
 // ---------------------------------------------------------------------------
 // Propinas parsing
 // ---------------------------------------------------------------------------
-function parsePropinas(table) {
-  const cols = table.cols;
-  const rows = table.rows;
+function parseEuro(str) {
+  if (str == null) return 0;
+  const cleaned = String(str).replace(/[^\d,.-]/g, '').replace(',', '.');
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? 0 : n;
+}
+
+function parsePropinas(rows) {
+  const nameRow = rows[3] || [];
 
   const employees = [];
-  for (let idx = 2; idx < cols.length; idx += 3) {
-    const label = cols[idx] && cols[idx].label ? cols[idx].label.replace(/\s*HORAS\s*$/i, '').replace(/\s*PAX\s*$/i, '').trim() : null;
-    if (!label) break;
-    employees.push({ name: label, horasIdx: idx, propinasIdx: idx + 1, estadoIdx: idx + 2 });
+  for (let idx = 2; idx < nameRow.length; idx += 3) {
+    const name = cellText(nameRow, idx);
+    if (!name) continue;
+    employees.push({ name, horasIdx: idx, propinasIdx: idx + 1, estadoIdx: idx + 2 });
   }
 
   const weeks = [];
-  for (const row of rows) {
-    if (!row.c || !row.c[0] || row.c[0].v == null) continue;
-    const weekLabel = String(row.c[0].v).trim();
+  for (let i = 5; i < rows.length; i++) {
+    const row = rows[i];
+    const weekLabel = cellText(row, 0);
+    if (!weekLabel) continue;
     const wm = weekLabel.match(/(\d+)/);
     const weekNum = wm ? parseInt(wm[1], 10) : null;
-    const totalCell = row.c[1];
-    const total = totalCell && totalCell.v != null ? totalCell.v : 0;
+    const total = parseEuro(cellText(row, 1));
 
     const perEmployee = {};
     let anyData = false;
     employees.forEach((emp) => {
-      const h = row.c[emp.horasIdx];
-      const p = row.c[emp.propinasIdx];
-      const e = row.c[emp.estadoIdx];
-      const propinas = p && p.v != null ? p.v : 0;
-      const estado = e && e.v != null ? String(e.v).trim() : null;
-      const horasVal = h ? (h.v != null ? h.v : h.f) : null;
-      if (toNum(propinas) > 0 || toNum(horasVal) > 0) anyData = true;
-      perEmployee[emp.name] = {
-        horas: h ? (h.v != null ? h.v : h.f) : null,
-        propinas,
-        estado,
-      };
+      const horas = cellText(row, emp.horasIdx);
+      const propinas = parseEuro(cellText(row, emp.propinasIdx));
+      const estado = cellText(row, emp.estadoIdx);
+      if (propinas > 0 || toNum(horas) > 0) anyData = true;
+      perEmployee[emp.name] = { horas, propinas, estado };
     });
 
     weeks.push({ weekNum, weekLabel, total, perEmployee, anyData });
@@ -432,14 +455,17 @@ async function loadAll(isManualRefresh) {
     : null;
 
   try {
-    const [horarioJson, propinasJson] = await Promise.all([fetchGviz(GID_HORARIO), fetchGviz(GID_PROPINAS)]);
+    const [horarioRows, propinasRows] = await Promise.all([
+      fetchCsvChunked(GID_HORARIO, 'S', 200, 1400),
+      fetchCsvRange(GID_PROPINAS, 'A1:X100'),
+    ]);
 
-    state.horarioBlocks = parseHorario(horarioJson.table);
+    state.horarioBlocks = parseHorario(horarioRows);
     state.currentWeekIdx = keepWeekDate
       ? findWeekIndexForDate(state.horarioBlocks, keepWeekDate)
       : findWeekIndexForDate(state.horarioBlocks, new Date());
 
-    state.propinas = parsePropinas(propinasJson.table);
+    state.propinas = parsePropinas(propinasRows);
 
     renderHorario();
     renderPropinas();

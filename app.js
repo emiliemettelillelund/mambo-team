@@ -202,14 +202,18 @@ function parseHorario(rows) {
 function shiftClass(text) {
   if (!text) return 'shift-empty';
   if (text === 'OFF') return 'shift-off';
-  if (/BAJA|AUSENCIA/i.test(text)) return 'shift-note';
+  if (/apoyo|refuerzo/i.test(text)) return 'shift-refuerzo';
+  if (/baja|ausencia/i.test(text)) return 'shift-ausencia';
   const m = text.match(/^(\d{1,2}):(\d{2})/);
   if (m) {
     const h = parseInt(m[1], 10);
-    if (h >= 17 || h < 5) return 'shift-night';
-    return 'shift-day';
+    if (h < 5) return 'shift-noche-camarero';
+    if (h < 11) return 'shift-desayuno';
+    if (h < 17) return 'shift-turno-dia';
+    if (h < 21) return 'shift-noche-barra';
+    return 'shift-noche-camarero';
   }
-  return 'shift-note';
+  return 'shift-ausencia';
 }
 
 function sameDay(a, b) {

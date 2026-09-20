@@ -8,17 +8,29 @@
   --cream-line: #e9dcc0;
   --olive: #3f4732;
   --olive-light: #79855e;
-  --sage: #8a9974;
-  --sage-dark: #5c6b49;
-  --peach: #e9c9a0;
-  --terracotta: #c97355;
-  --dusty-rose: #c08d7d;
   --ink: #2e2018;
   --ink-soft: #6b5c4d;
   --good: #4c7a4c;
   --good-bg: #e3ecdd;
   --pending: #a8462f;
   --pending-bg: #f4e2da;
+
+  /* exact "LEYENDA DE TURNOS" swatches, sampled from the sheet */
+  --turno-dia-h: #d6823c;
+  --turno-dia: #e3a16a;
+  --desayuno-h: #d6823c;
+  --desayuno: #ecc09c;
+  --noche-barra-h: #5b2322;
+  --noche-barra: #825a58;
+  --noche-camarero-h: #374a3a;
+  --noche-camarero: #6a7867;
+  --refuerzo-h: #a83912;
+  --refuerzo: #bf6a52;
+  --admin-h: #a83912;
+  --admin: #d59c8b;
+  --off-h: #efe4c6;
+  --off: #f6edd9;
+  --ausencia: #9c8b82;
 
   --bg: var(--cream);
   --surface: var(--cream-soft);
@@ -95,7 +107,7 @@ a { color: inherit; }
   font-size: 11px;
   letter-spacing: 1.6px;
   text-transform: uppercase;
-  color: var(--peach);
+  color: var(--turno-dia);
   opacity: 0.9;
 }
 
@@ -155,7 +167,7 @@ a { color: inherit; }
 .tab-btn {
   background: transparent;
   border: none;
-  color: var(--peach);
+  color: var(--turno-dia);
   font-family: "Fraunces", serif;
   font-size: 15px;
   font-weight: 600;
@@ -254,7 +266,7 @@ main {
   padding: 8px 12px;
   border-radius: 999px;
 }
-.today-btn:hover { background: var(--peach); }
+.today-btn:hover { background: var(--turno-dia); }
 
 /* ---------- Legend ---------- */
 .legend {
@@ -303,7 +315,7 @@ table.schedule thead th {
   padding: 12px 8px;
 }
 table.schedule thead th .day-date { display: block; font-size: 10.5px; opacity: 0.75; font-weight: 400; margin-top: 2px; }
-table.schedule thead th.today-col { background: var(--terracotta); }
+table.schedule thead th.today-col { background: var(--refuerzo-h); }
 table.schedule td.name-cell {
   text-align: left;
   font-weight: 600;
@@ -326,10 +338,12 @@ table.schedule td.hours-cell { font-weight: 600; color: var(--olive); white-spac
   font-weight: 500;
 }
 .shift-off { color: var(--text-soft); background: transparent; font-weight: 400; }
-.shift-day { background: var(--peach); color: #5a3c1c; }
-.shift-night { background: var(--sage); color: #263420; }
-.shift-late { background: var(--sage-dark); color: var(--cream); }
-.shift-note { background: var(--dusty-rose); color: #4a2418; font-size: 11px; }
+.shift-desayuno { background: var(--desayuno); color: #5a3c1c; }
+.shift-turno-dia { background: var(--turno-dia); color: #4a2c10; }
+.shift-noche-barra { background: var(--noche-barra); color: var(--cream); font-size: 11px; }
+.shift-noche-camarero { background: var(--noche-camarero); color: var(--cream); }
+.shift-refuerzo { background: var(--refuerzo); color: #3d1608; }
+.shift-ausencia { background: var(--ausencia); color: var(--cream); font-size: 11px; }
 .shift-empty { color: var(--border); }
 
 

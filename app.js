@@ -509,5 +509,50 @@ document.getElementById('todayBtn').addEventListener('click', () => {
 });
 document.getElementById('refreshBtn').addEventListener('click', () => loadAll(true));
 
-loadAll(false);
-setInterval(() => loadAll(false), REFRESH_MS);
+// ---------------------------------------------------------------------------
+// Password gate. The hash below is SHA-256 of the current shared password;
+// update it (and bump the asset version) whenever the team password changes.
+// ---------------------------------------------------------------------------
+const GATE_HASH = '242e2aaa5fac25fe4e1a1e077924fd2d084afa20fb179be751604b69c15f1bae';
+const GATE_STORAGE_KEY = 'mambo_gate_ok';
+
+async function sha256(text) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function unlockSite() {
+  document.getElementById('gate').hidden = true;
+  document.getElementById('siteContent').hidden = false;
+  loadAll(false);
+  setInterval(() => loadAll(false), REFRESH_MS);
+}
+
+let alreadyUnlocked = false;
+try {
+  alreadyUnlocked = localStorage.getItem(GATE_STORAGE_KEY) === GATE_HASH;
+} catch (e) {
+  // localStorage unavailable; fall through to asking for the password
+}
+
+if (alreadyUnlocked) {
+  unlockSite();
+} else {
+  document.getElementById('gateForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('gatePassword');
+    const hash = await sha256(input.value);
+    if (hash === GATE_HASH) {
+      try {
+        localStorage.setItem(GATE_STORAGE_KEY, GATE_HASH);
+      } catch (e) {
+        // ignore storage failures; access still granted for this page load
+      }
+      unlockSite();
+    } else {
+      document.getElementById('gateError').hidden = false;
+      input.value = '';
+      input.focus();
+    }
+  });
+}

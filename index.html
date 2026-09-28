@@ -8,10 +8,22 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
+<div class="gate" id="gate">
+  <form class="gate-box" id="gateForm">
+    <img src="assets/mambo-logo.png" alt="Mambo" class="gate-logo">
+    <h1>Equipo Mambo</h1>
+    <p>Introduce la contraseña del equipo para ver el horario y las propinas.</p>
+    <input type="password" id="gatePassword" placeholder="Contraseña" autocomplete="current-password" autofocus>
+    <button type="submit">Entrar</button>
+    <div class="gate-error" id="gateError" hidden>Contraseña incorrecta.</div>
+  </form>
+</div>
+
+<div id="siteContent" hidden>
 <header class="site-header">
   <div class="header-top">
     <img src="assets/mambo-logo.png" alt="Mambo" class="logo-mark">
@@ -86,7 +98,8 @@
 <footer>
   Datos en vivo desde la hoja de cálculo de Google · se actualiza automáticamente cada minuto
 </footer>
+</div>
 
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

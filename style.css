@@ -403,6 +403,20 @@ table.schedule tbody tr:nth-child(even) td:not(.name-cell) { background: rgba(0,
 table.schedule td.today-col { background: rgba(201,115,85,0.09); }
 table.schedule td.hours-cell { font-weight: 600; color: var(--olive); white-space: nowrap; }
 
+table.schedule tr.store-hours-row td {
+  background: var(--olive) !important;
+  color: var(--cream);
+  font-weight: 600;
+  font-size: 12.5px;
+  border-top: 2px solid var(--maroon-dark);
+}
+table.schedule tr.store-hours-row td.name-cell {
+  background: var(--olive) !important;
+  color: var(--cream);
+  font-family: "Fraunces", serif;
+}
+table.schedule tr.store-hours-row td.today-col { background: var(--olive-light) !important; }
+
 .shift-pill {
   display: inline-block;
   padding: 4px 7px;

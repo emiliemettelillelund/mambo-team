@@ -88,7 +88,12 @@ async function fetchCsvChunked(gid, colRange, chunkRows, maxRow) {
 // ---------------------------------------------------------------------------
 const DAY_START_COLS = [2, 4, 6, 8, 10, 12, 14]; // C E G I K M O
 const DAY_END_COLS = [3, 5, 7, 9, 11, 13, 15]; // D F H J L N P
-const SKIP_LABELS = new Set(['PAX POR DÍA:', 'HORARIO APERTURA/CIERRE CLIENTE']);
+const MONTH_BANNERS = new Set([
+  'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+  'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
+]);
+const SKIP_LABELS = new Set(['PAX POR DÍA:', ...MONTH_BANNERS]);
+const STORE_HOURS_LABEL = 'HORARIO APERTURA/CIERRE CLIENTE';
 
 function cellText(row, idx) {
   if (!row) return null;
@@ -147,11 +152,19 @@ function parseHorario(rows) {
     const employees = [];
     let lastEmp = null;
     let skipContinuation = false;
+    let storeHours = null;
+    let pendingStoreOpen = null;
 
     let j = i + 2;
     for (let guard = 0; j < rows.length && guard < 80; j++, guard++) {
       const nm = cellText(rows[j], 1);
       if (nm === 'TRABAJADOR') break;
+
+      if (nm === STORE_HOURS_LABEL) {
+        pendingStoreOpen = DAY_START_COLS.map((sc) => cellText(rows[j], sc));
+        lastEmp = null;
+        continue;
+      }
 
       if (nm && SKIP_LABELS.has(nm)) {
         skipContinuation = true;
@@ -176,6 +189,13 @@ function parseHorario(rows) {
         continue;
       }
 
+      if (pendingStoreOpen) {
+        const closes = DAY_START_COLS.map((sc) => cellText(rows[j], sc));
+        storeHours = pendingStoreOpen.map((o, di) => formatShift(o, closes[di]));
+        pendingStoreOpen = null;
+        continue;
+      }
+
       const hasData = DAY_START_COLS.some((sc, di) => cellText(rows[j], sc) || cellText(rows[j], DAY_END_COLS[di]));
       if (!hasData) {
         skipContinuation = false;
@@ -193,7 +213,7 @@ function parseHorario(rows) {
       }
     }
 
-    if (employees.length) blocks.push({ weekDates, employees });
+    if (employees.length) blocks.push({ weekDates, employees, storeHours });
   }
 
   return blocks;
@@ -293,6 +313,14 @@ function renderHorario() {
     const hoursText = emp.horas != null ? `${emp.horas}h${emp.contrato != null ? ` / ${emp.contrato}h` : ''}` : '—';
     tbody += `<td class="hours-cell">${hoursText}</td></tr>`;
   });
+  if (block.storeHours) {
+    tbody += `<tr class="store-hours-row"><td class="name-cell">Horario cliente</td>`;
+    block.storeHours.forEach((hours, i) => {
+      const isToday = i === todayIdx;
+      tbody += `<td class="${isToday ? 'today-col' : ''}">${hours ? escapeHtml(hours) : '<span class="shift-empty">—</span>'}</td>`;
+    });
+    tbody += `<td class="hours-cell">—</td></tr>`;
+  }
   tbody += '</tbody>';
   table.innerHTML = thead + tbody;
 

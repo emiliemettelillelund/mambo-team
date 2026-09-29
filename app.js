@@ -316,23 +316,46 @@ function parseEuro(str) {
 }
 
 function parsePropinas(rows) {
-  const nameRow = rows[3] || [];
+  // Locate the sub-header row (contains "HORAS") rather than assuming a fixed
+  // row/column index — the sheet's columns have shifted before (e.g. a "DÍA"
+  // column got inserted) and will likely shift again.
+  let subRowIdx = -1;
+  for (let i = 0; i < Math.min(rows.length, 10); i++) {
+    if (rows[i] && rows[i].some((c) => c && String(c).trim().toUpperCase() === 'HORAS')) {
+      subRowIdx = i;
+      break;
+    }
+  }
+  if (subRowIdx === -1 || subRowIdx === 0) return { employees: [], weeks: [] };
+
+  const nameRow = rows[subRowIdx - 1] || [];
+  const width = Math.max(nameRow.length, rows[subRowIdx].length, 60);
+
+  let totalIdx = -1;
+  for (let c = 0; c < width; c++) {
+    const v = cellText(nameRow, c);
+    if (v && /TOTAL/i.test(v)) {
+      totalIdx = c;
+      break;
+    }
+  }
+  if (totalIdx === -1) totalIdx = 1;
 
   const employees = [];
-  for (let idx = 2; idx < nameRow.length; idx += 3) {
+  for (let idx = totalIdx + 1; idx < width; idx += 3) {
     const name = cellText(nameRow, idx);
     if (!name) continue;
     employees.push({ name, horasIdx: idx, propinasIdx: idx + 1, estadoIdx: idx + 2 });
   }
 
   const weeks = [];
-  for (let i = 5; i < rows.length; i++) {
+  for (let i = subRowIdx + 1; i < rows.length; i++) {
     const row = rows[i];
     const weekLabel = cellText(row, 0);
     if (!weekLabel) continue;
     const wm = weekLabel.match(/(\d+)/);
     const weekNum = wm ? parseInt(wm[1], 10) : null;
-    const total = parseEuro(cellText(row, 1));
+    const total = parseEuro(cellText(row, totalIdx));
 
     const perEmployee = {};
     let anyData = false;
@@ -444,7 +467,7 @@ async function loadAll(isManualRefresh) {
   try {
     const [horarioRows, propinasRows] = await Promise.all([
       fetchCsvChunked(GID_HORARIO, 'S', 200, 1400),
-      fetchCsvRange(GID_PROPINAS, 'A1:X100'),
+      fetchCsvRange(GID_PROPINAS, 'A1:AL120'),
     ]);
 
     state.horarioBlocks = parseHorario(horarioRows);

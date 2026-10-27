@@ -369,6 +369,15 @@ function parsePropinas(rows) {
   }
   if (totalIdx === -1) totalIdx = 1;
 
+  let diaIdx = -1;
+  for (let c = 0; c < totalIdx; c++) {
+    const v = cellText(nameRow, c);
+    if (v && /^D[ÍI]A$/i.test(v)) {
+      diaIdx = c;
+      break;
+    }
+  }
+
   const employees = [];
   for (let idx = totalIdx + 1; idx < width; idx += 3) {
     const name = cellText(nameRow, idx);
@@ -395,10 +404,13 @@ function parsePropinas(rows) {
       perEmployee[emp.name] = { horas, propinas, estado };
     });
 
-    weeks.push({ weekNum, weekLabel, total, perEmployee, anyData });
+    const diaStart = diaIdx === -1 ? null : cellText(row, diaIdx);
+    const diaEnd = diaIdx === -1 ? null : cellText(row, diaIdx + 1);
+
+    weeks.push({ weekNum, weekLabel, diaStart, diaEnd, total, perEmployee, anyData });
   }
 
-  return { employees: employees.map((e) => e.name), weeks };
+  return { employees: employees.map((e) => e.name), weeks, hasDia: diaIdx !== -1 };
 }
 
 function isoWeekNumber(date) {
@@ -439,6 +451,7 @@ function renderPropinas() {
 
   let thead = '<thead><tr>';
   thead += '<th class="corner" rowspan="2">Semana</th>';
+  if (data.hasDia) thead += '<th rowspan="2" colspan="2">Día</th>';
   thead += '<th rowspan="2">Total</th>';
   data.employees.forEach((emp) => {
     thead += `<th class="emp-group" colspan="3">${escapeHtml(emp)}</th>`;
@@ -456,6 +469,10 @@ function renderPropinas() {
       const isCurrent = w.weekNum === currentWeekNum;
       let row = `<tr class="${isCurrent ? 'current-week' : ''}">`;
       row += `<td class="week-cell">${escapeHtml(w.weekLabel)}</td>`;
+      if (data.hasDia) {
+        row += `<td class="dia-cell">${w.diaStart ? escapeHtml(w.diaStart) : '—'}</td>`;
+        row += `<td class="dia-cell">${w.diaEnd ? escapeHtml(w.diaEnd) : '—'}</td>`;
+      }
       row += `<td class="total-cell">${fmtEuro(w.total)}</td>`;
       data.employees.forEach((emp) => {
         const rec = w.perEmployee[emp] || {};

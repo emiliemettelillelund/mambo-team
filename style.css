@@ -466,6 +466,7 @@ table.propinas tbody tr:nth-child(even) td:not(.week-cell) { background: rgba(0,
 table.propinas tbody tr.current-week td { background: rgba(201,115,85,0.14) !important; }
 table.propinas td.num { text-align: right; font-weight: 600; }
 table.propinas td.total-cell { text-align: right; font-weight: 700; color: var(--olive); background: var(--cream-soft); }
+table.propinas td.dia-cell { text-align: center; font-variant-numeric: tabular-nums; color: var(--ink-soft); }
 
 .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .status-badge.ok { background: var(--good-bg); color: var(--good); }

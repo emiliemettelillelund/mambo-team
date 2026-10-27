@@ -470,6 +470,7 @@ table.propinas td.total-cell { text-align: right; font-weight: 700; color: var(-
 .status-badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .status-badge.ok { background: var(--good-bg); color: var(--good); }
 .status-badge.pending { background: var(--pending-bg); color: var(--pending); }
+.status-badge.hold { background: var(--maroon); color: var(--cream); letter-spacing: 0.2px; }
 .status-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 
 footer {

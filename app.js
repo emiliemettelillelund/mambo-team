@@ -420,6 +420,13 @@ function toNum(x) {
   return isNaN(n) ? 0 : n;
 }
 
+function estadoBadge(estado) {
+  if (!estado) return '<span class="status-badge pending"><span class="dot"></span>—</span>';
+  if (/ya entregado/i.test(estado)) return '<span class="status-badge ok"><span class="dot"></span>Ya entregado</span>';
+  if (/no entregado/i.test(estado)) return '<span class="status-badge pending"><span class="dot"></span>No entregado</span>';
+  return `<span class="status-badge hold">${escapeHtml(estado)}</span>`;
+}
+
 function renderPropinas() {
   const data = state.propinas;
   if (!data) return;
@@ -452,12 +459,7 @@ function renderPropinas() {
       row += `<td class="total-cell">${fmtEuro(w.total)}</td>`;
       data.employees.forEach((emp) => {
         const rec = w.perEmployee[emp] || {};
-        const isPending = /no entregado/i.test(rec.estado || '');
-        const badge = rec.estado
-          ? isPending
-            ? '<span class="status-badge pending"><span class="dot"></span>No entregado</span>'
-            : '<span class="status-badge ok"><span class="dot"></span>Ya entregado</span>'
-          : '<span class="status-badge pending"><span class="dot"></span>—</span>';
+        const badge = estadoBadge(rec.estado);
         row += `<td>${rec.horas != null ? rec.horas : '—'}</td>`;
         row += `<td class="num">${fmtEuro(rec.propinas)}</td>`;
         row += `<td>${badge}</td>`;

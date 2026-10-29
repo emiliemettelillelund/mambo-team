@@ -424,6 +424,7 @@ table.schedule tr.store-hours-row td.today-col { background: var(--olive-light) 
   font-size: 12px;
   line-height: 1.3;
   font-weight: 500;
+  white-space: pre-line;
 }
 .shift-off { color: var(--text-soft); background: transparent; font-weight: 400; }
 .shift-desayuno { background: var(--desayuno); color: #5a3c1c; }

@@ -219,8 +219,10 @@ function parseHorario(rows) {
   return blocks;
 }
 
-function shiftClass(text) {
+function shiftClass(text, rowName) {
   if (!text) return 'shift-empty';
+  if (/^BRIEFING\s+TURNO\s+D[ÍI]A/i.test(rowName || '')) return 'shift-briefing-dia';
+  if (/^BRIEFING\s+TURNO\s+NOCHE/i.test(rowName || '')) return 'shift-briefing-noche';
   if (text === 'OFF') return 'shift-off';
   if (/apoyo|refuerzo/i.test(text)) return 'shift-refuerzo';
   if (/baja|ausencia/i.test(text)) return 'shift-ausencia';
@@ -306,7 +308,7 @@ function renderHorario() {
     tbody += `<tr><td class="name-cell">${escapeHtml(emp.name)}</td>`;
     emp.days.forEach((day, i) => {
       const isToday = i === todayIdx;
-      const cls = shiftClass(day);
+      const cls = shiftClass(day, emp.name);
       const content = day ? `<span class="shift-pill ${cls}">${escapeHtml(day)}</span>` : '<span class="shift-empty">—</span>';
       tbody += `<td class="${isToday ? 'today-col' : ''}">${content}</td>`;
     });

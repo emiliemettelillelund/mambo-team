@@ -585,7 +585,7 @@ document.getElementById('refreshBtn').addEventListener('click', () => loadAll(tr
 // Password gate. The hash below is SHA-256 of the current shared password;
 // update it (and bump the asset version) whenever the team password changes.
 // ---------------------------------------------------------------------------
-const GATE_HASH = 'e6e312151be4d05f7e15214a5d29499812a2311063a08c24887fe44ed5e5cff8';
+const GATE_HASH = 'da805eee33f616c2888d659cc1d3db2f0df384f471c04fc4d2f1b76f85601f8e';
 const GATE_STORAGE_KEY = 'mambo_gate_ok';
 
 async function sha256(text) {

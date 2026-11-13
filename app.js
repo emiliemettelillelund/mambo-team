@@ -301,7 +301,7 @@ function renderHorario() {
     const isToday = i === todayIdx;
     thead += `<th class="${isToday ? 'today-col' : ''}">${dn}<span class="day-date">${fmtDayMonth(block.weekDates[i])}</span></th>`;
   });
-  thead += '<th>Horas</th></tr></thead>';
+  thead += '</tr></thead>';
 
   let tbody = '<tbody>';
   block.employees.forEach((emp) => {
@@ -312,8 +312,7 @@ function renderHorario() {
       const content = day ? `<span class="shift-pill ${cls}">${escapeHtml(day)}</span>` : '<span class="shift-empty">—</span>';
       tbody += `<td class="${isToday ? 'today-col' : ''}">${content}</td>`;
     });
-    const hoursText = emp.horas != null ? `${emp.horas}h${emp.contrato != null ? ` / ${emp.contrato}h` : ''}` : '—';
-    tbody += `<td class="hours-cell">${hoursText}</td></tr>`;
+    tbody += '</tr>';
   });
   if (block.storeHours) {
     tbody += `<tr class="store-hours-row"><td class="name-cell">Horario cliente</td>`;
@@ -321,7 +320,7 @@ function renderHorario() {
       const isToday = i === todayIdx;
       tbody += `<td class="${isToday ? 'today-col' : ''}">${hours ? escapeHtml(hours) : '<span class="shift-empty">—</span>'}</td>`;
     });
-    tbody += `<td class="hours-cell">—</td></tr>`;
+    tbody += '</tr>';
   }
   tbody += '</tbody>';
   table.innerHTML = thead + tbody;
